@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Save Downgrader</title>
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<style>
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0f1115;
+        color: #e6e6e6;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .container {
+        background: #171a21;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        width: 350px;
+        text-align: center;
+    }
+
+    h1 {
+        margin-bottom: 20px;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .upload-btn {
+        display: block;
+        padding: 12px;
+        border: 1px dashed #444;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-bottom: 15px;
+        transition: 0.2s;
+    }
+
+    .upload-btn:hover {
+        border-color: #888;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        background: #3b82f6;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        background: #2563eb;
+    }
+
+    button:disabled {
+        background: #444;
+        cursor: not-allowed;
+    }
+
+    .status {
+        margin-top: 15px;
+        font-size: 13px;
+        color: #aaa;
+    }
+
+    a {
+        display: block;
+        margin-top: 15px;
+        color: #3b82f6;
+        text-decoration: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Save Downgrader</h1>
+
+    <label class="upload-btn">
+        Select .sav file
+        <input type="file" id="fileInput" />
+    </label>
+
+    <button id="processBtn" disabled>Downgrade</button>
+
+    <div class="status" id="status">No file selected</div>
+
+    <a id="downloadLink" style="display:none">Download modified save</a>
+</div>
+
+<script>
+let selectedFile = null;
+
+document.getElementById("fileInput").addEventListener("change", (e) => {
+    selectedFile = e.target.files[0];
+
+    if (selectedFile) {
+        document.getElementById("status").textContent = selectedFile.name;
+        document.getElementById("processBtn").disabled = false;
+    }
+});
+
+document.getElementById("processBtn").addEventListener("click", async () => {
+    if (!selectedFile) return;
+
+    const status = document.getElementById("status");
+    status.textContent = "Processing...";
+
+    try {
+        const buffer = await selectedFile.arrayBuffer();
+
+        // Decompress
+        const decompressed = pako.ungzip(new Uint8Array(buffer));
+
+        // Modify bytes
+        const modified = modifyBytes(decompressed);
+
+        // Recompress
+        const recompressed = pako.gzip(modified);
+
+        // Download
+        const blob = new Blob([recompressed], { type: "application/gzip" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.getElementById("downloadLink");
+        link.href = url;
+        link.download = selectedFile.name;
+        link.style.display = "block";
+
+        status.textContent = "Done ✔";
+    } catch (err) {
+        console.error(err);
+        status.textContent = "Error processing file";
+    }
+});
+
+function modifyBytes(data) {
+    const copy = new Uint8Array(data);
+
+    // Replace ALL 0x43 with 0x42 (simple method)
+    for (let i = 0; i < copy.length; i++) {
+        if (copy[i] === 0x43) {
+            copy[i] = 0x42;
+        }
+    }
+
+    return copy;
+}
+</script>
+
+</body>
+</html>
