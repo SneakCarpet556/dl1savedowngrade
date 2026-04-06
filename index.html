@@ -149,12 +149,14 @@ document.getElementById("processBtn").addEventListener("click", async () => {
 });
 
 function modifyBytes(data) {
+    const view = new DataView(data.buffer);
     const copy = new Uint8Array(data);
 
-    // Replace ALL 0x43 with 0x42 (simple method)
-    for (let i = 0; i < copy.length; i++) {
-        if (copy[i] === 0x43) {
-            copy[i] = 0x42;
+    for (let i = 0; i < data.length - 4; i += 4) {
+        const value = view.getUint32(i, true); // little endian
+
+        if (value === 67) { // 0x43
+            view.setUint32(i, 66, true); // 0x42
         }
     }
 
